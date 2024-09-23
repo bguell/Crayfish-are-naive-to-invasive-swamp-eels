@@ -2,7 +2,7 @@
 
 **INTRODUCTION**
 
-This repository contains raw data, recordings, scripts, and code associated with the manuscript entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations".
+This repository contains raw data and scripts associated with the manuscript in preparation entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations".
 
 **Abstract**
 
