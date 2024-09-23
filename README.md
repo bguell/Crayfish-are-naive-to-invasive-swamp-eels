@@ -1,10 +1,10 @@
 # naive-crayfish-and-invasive-swamp-eels
 
-INTRODUCTION
+**INTRODUCTION**
 
 This repository contains raw data, recordings, scripts, and code associated with the manuscript entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations".
 
-Abstract
+**Abstract**
 
 1.	Invasive predators are rampant worldwide, often causing ecological, economic, and social harm. Prey naïveté has been hypothesized to contribute to population declines of native prey following invasions of non-native predators.
 2.	We tested the prey naïveté hypothesis (PNH) by examining the antipredator responses of slough crayfish following exposure to native warmouth and non-native Asian swamp eels, whose invasion has been associated with collapses of several common macroinvertebrate and small fish species in the Everglades.
@@ -12,10 +12,10 @@ Abstract
 4.	We also tested crayfish from invaded and uninvaded sites to test for local adaptation to the invasive predator. We found no population differences, suggesting that ~6 years of contact with swamp eels (~12 crayfish generations) has been insufficient for the evolution of swamp eel recognition.
 5.	Our work provides another test of the prey naivete hypothesis and evidence for one underlying mechanism that could explain collapses of prey species following the swamp eel invasion in the Everglades.
 
-FOLDERS & FILES
+**FOLDERS & FILES**
 
 The 'Scripts for Guell and Dorn.Rmd' file contains the data processing and statistical analyses using the data found in the 'Crayfish Behavioral Assay.xlsx' file. Analyses are shown in chronological order as reported in the manuscript. We show details on importing, manipulating, summarizing, analyzing (testing hypotheses), and visualizing the data. See the manuscript for details on background, research questions, hypothesis, methods, etc...
 
-CONTACT INFORMATION
+**CONTACT INFORMATION**
 
 Please email bguell@fiu.edu with any questions regarding these materials and analyses
