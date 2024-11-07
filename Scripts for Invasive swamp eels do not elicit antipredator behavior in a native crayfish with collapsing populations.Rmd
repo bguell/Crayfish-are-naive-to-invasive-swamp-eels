@@ -1,0 +1,970 @@
+---
+title: "Scripts for: Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations "
+author: "Brandon Güell"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 6
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+#setup PDF Knit settings for export as PDF [this entire chunk will not show on knit doc]
+knitr::opts_chunk$set(echo = TRUE, max.print=10, message = FALSE, warning = FALSE, tidy = T, fig.show = "hold") # display r chunks but not messages (e.g., warnings) in knit doc
+
+# Load required packages
+library(readxl)
+library(dplyr)
+library(zoo)
+library(ggplot2)
+library(scales)
+library(lemon)
+library(lme4)
+library(mgcv)
+library(car)
+library(lmerTest)
+library(emmeans)
+```
+
+# Introduction
+
+> The data processing and statistical analyses shown here are from the Guell & Dorn "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations" manuscript. Analyses are shows in chronological order as reported in the manuscript. We show details on importing, manipulating, summarizing, analyzing (testing hypotheses), and visualizing the data. See manuscript for details on background, research questions, hypothesis, methods, etc..
+
+
+# Nonlethal Predator Cue Trials
+
+## Import dataset
+```{r}
+library(readxl)
+cray <- read_excel("Crayfish Behavioral Assay Data.xlsx", 
+    sheet = "Visual + Chem Cue Behav Data ", 
+    na = "NA")
+
+cray = cray %>%
+  mutate(Treatment_Period = factor(Treatment_Period, levels=c("Before", "After")))
+
+craycray = cray %>%
+  filter(Criteria_met == 1 & Activity_criteria_met == 1 & Molted == 0)
+```
+
+
+## Crayfish morphometrics
+
+> Rough estimates of CL from crayfish parts in eel diets (N=9) sizes were 8.9±3.2 mm (mean±SD) and ranged from 3.7–14.5 mm. We tried to test crayfish that were below 15 mm in CL.
+
+### Summary statistics
+```{r}
+cray_size_summary0 = cray %>% 
+summarise(mean = mean(Crayfish_CL_mm, na.rm=T), SE= sd(Crayfish_CL_mm, na.rm=T)/sqrt(length(Crayfish_CL_mm)), SD = sd(Crayfish_CL_mm, na.rm=T), max = max(Crayfish_CL_mm, na.rm=T), min = min(Crayfish_CL_mm, na.rm=T), sample_size_unique=n_distinct(Crayfish_CL_mm, na.rm=T), sample_size=n())
+cray_size_summary0
+
+cray_size_summary0.5 = craycray %>% 
+  group_by(Cue_Treatment) %>%
+summarise(mean = mean(Crayfish_CL_mm, na.rm=T), SE= sd(Crayfish_CL_mm, na.rm=T)/sqrt(length(Crayfish_CL_mm)), SD = sd(Crayfish_CL_mm, na.rm=T), max = max(Crayfish_CL_mm, na.rm=T), min = min(Crayfish_CL_mm, na.rm=T), sample_size_unique=n_distinct(Crayfish_CL_mm, na.rm=T), sample_size=n())
+cray_size_summary0.5
+
+cray_size_summary1 = craycray %>% 
+  group_by(Cue_Treatment, Population) %>%
+summarise(mean = mean(Crayfish_CL_mm, na.rm=T), SE= sd(Crayfish_CL_mm, na.rm=T)/sqrt(length(Crayfish_CL_mm)), SD = sd(Crayfish_CL_mm, na.rm=T), max = max(Crayfish_CL_mm, na.rm=T), min = min(Crayfish_CL_mm, na.rm=T), sample_size_unique=n_distinct(Crayfish_CL_mm, na.rm=T), sample_size=n())
+cray_size_summary1
+
+cray_size_summary2 = craycray %>% 
+  group_by(Crayfish_Sex, Population, Cue_Treatment) %>%
+summarise(mean = mean(Crayfish_CL_mm, na.rm=T), SE= sd(Crayfish_CL_mm, na.rm=T)/sqrt(length(Crayfish_CL_mm)), SD = sd(Crayfish_CL_mm, na.rm=T), max = max(Crayfish_CL_mm, na.rm=T), min = min(Crayfish_CL_mm, na.rm=T), sample_size_unique=n_distinct(Crayfish_CL_mm, na.rm=T), sample_size=n())
+cray_size_summary2
+```
+
+> Crayfish tested were 8.7-17 mm in CL and were 12.43+/-1.54
+
+### Visualization
+
+By cue treatments
+```{r}
+cray_CL = 
+  ggplot(craycray, aes(x=Crayfish_CL_mm)) +
+  geom_histogram(aes(y=..density.., fill=Cue_Treatment), color="black", position = "identity", binwidth = 0.3) +
+  geom_density(aes(fill=Cue_Treatment), color="black", alpha=.7, position = "identity") +
+  geom_vline(aes(xintercept=mean(Crayfish_CL_mm)), color="black", linetype="dashed", size=1) +
+  labs(y="Density", x="Carapace length (mm)") + #create labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black")) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= c(.8,.9)) +
+  scale_y_continuous(breaks= pretty_breaks(n=6), expand = c(0,0), limits = c(0,1)) +
+  scale_x_continuous(breaks= pretty_breaks(n=8)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  geom_vline(data=cray_size_summary0.5, aes(xintercept = mean, group = Cue_Treatment, color=Cue_Treatment), linetype=2, size = 1)
+cray_CL
+```
+
+
+```{r}
+cray_CL2 = 
+  ggplot(craycray, aes(x=Population, y=Crayfish_CL_mm)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 2, color = "black", pch=21) +
+  labs(y="Carapace length (mm)", x="Population") + #creat labels... 
+  theme_classic(base_size=8) +
+  theme(legend.text = element_text(size = 8), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 8), axis.ticks = element_line(color = "black")) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= c(0.05, 0.9)) +
+  scale_y_continuous(breaks= pretty_breaks(n=8)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) 
+cray_CL2
+```
+
+### STATS
+
+GLMM
+```{r}
+library(lme4)
+library(MuMIn)
+library(car)
+
+hist(craycray$Crayfish_CL_mm)
+
+#all models
+cray_size_full = lmer(Crayfish_CL_mm~Cue_Treatment*Population + (1|Crayfish_ID), data=craycray)
+cray_size_nointeraction=  lmer(Crayfish_CL_mm~Cue_Treatment+Population + (1|Crayfish_ID), data=craycray)
+cray_size_notreatment = lmer(Crayfish_CL_mm~Population + (1|Crayfish_ID), data=craycray)
+cray_size_nopopulation = lmer(Crayfish_CL_mm~Cue_Treatment + (1|Crayfish_ID), data=craycray)
+
+#AIC comparison
+library(AICcmodavg)
+print(aictab(list(cray_size_full,  cray_size_nointeraction, cray_size_notreatment, cray_size_nopopulation), c("cray_size_full", "cray_size_nointeraction", "cray_size_notreatment", "cray_size_nopopulation")), LL = FALSE)
+
+#Check for normality assumptions
+#homogeneity of variance assumption
+plot(fitted(cray_size_full), residuals(cray_size_full))
+#leveneTest(data=sp, Proportion_escape_hatched~Age*Clutch_size)
+#normality assumption
+hist(residuals(cray_size_full))
+qqnorm(residuals(cray_size_full))
+qqline(residuals(cray_size_full))
+shapiro.test(residuals(cray_size_full))
+
+summary(cray_size_full)
+Anova(cray_size_full)
+```
+Shapiro-Wilk normality test
+
+data:  residuals(time_active_full)
+W = 0.98674, p-value = 0.777
+
+
+Analysis of Deviance Table (Type II Wald chisquare tests)
+
+Response: Time_Active_prop
+                                  Chisq Df Pr(>Chisq)    
+Cue_Treatment                  13284.10  1  < 2.2e-16 ***
+Treatment_Period               34650.52  1  < 2.2e-16 ***
+Cue_Treatment:Treatment_Period   412.92  1  < 2.2e-16 ***
+
+
+Likelihood ratio tests
+```{r}
+anova(cray_size_full, cray_size_nointeraction, test = "Chisq")
+anova(cray_size_full, cray_size_notreatment, test = "Chisq")
+anova(cray_size_full, cray_size_nopopulation, test = "Chisq")
+```
+
+EFFECT OF INTERACTION:
+* **X = 1.7958; p-value = 0.1802 **
+
+EFFECT OF TREATMENT:
+* **X = 5.4983; p-value = 0.01904 **
+
+EFFECT OF POPULATION:
+* **X = 8.4292; p-value = 0.003692 **
+
+
+##### Effect Sizes & Post hoc Comparisons
+```{r}
+library(emmeans)
+
+#Compute Estimated Marginal Means (EMMs) & effect sizes & CI
+emms = emmeans(cray_size_full, pairwise~Cue_Treatment|Population, type="response") #, adjust="Bonferoni"
+emms
+summary(emms, adjust="fdr", infer=TRUE)
+
+emms = emmeans(cray_size_full, pairwise~Population|Cue_Treatment, type="response") #, adjust="Bonferoni"
+emms
+summary(emms, adjust="fdr", infer=TRUE)
+```
+
+
+
+
+*********************************************************************************************************
+*********************************************************************************************************
+*********************************************************************************************************
+
+
+## TIME ACTIVE
+```{r}
+time_active_craycray_summary1 = craycray %>% 
+  group_by(Cue_Treatment, Treatment_Period) %>%
+summarise(mean = mean(Time_Active_percent, na.rm=T), SE= sd(Time_Active_percent, na.rm=T)/sqrt(length(Time_Active_percent)), SD = sd(Time_Active_percent, na.rm=T), max = max(Time_Active_percent, na.rm=T), min = min(Time_Active_percent, na.rm=T), sample_size_unique=n_distinct(Time_Active_percent, na.rm=T), sample_size=n(), ci_lower = mean-qt(0.975, df = n() - 1) *SE, ci_upper = mean + qt(0.975, df = n() - 1) * SE)
+time_active_craycray_summary1
+
+time_active_craycray_summary2 = craycray %>% 
+  group_by(Population, Cue_Treatment, Treatment_Period) %>%
+summarise(mean = mean(Time_Active_percent, na.rm=T), SE= sd(Time_Active_percent, na.rm=T)/sqrt(length(Time_Active_percent)), SD = sd(Time_Active_percent, na.rm=T), max = max(Time_Active_percent, na.rm=T), min = min(Time_Active_percent, na.rm=T), sample_size_unique=n_distinct(Time_Active_percent, na.rm=T), sample_size=n())
+time_active_craycray_summary2
+
+time_active_craycray_summary3 = craycray %>% 
+  group_by(Treatment_Period) %>%
+summarise(mean = mean(Time_Active_percent, na.rm=T), SE= sd(Time_Active_percent, na.rm=T)/sqrt(length(Time_Active_percent)), SD = sd(Time_Active_percent, na.rm=T), max = max(Time_Active_percent, na.rm=T), min = min(Time_Active_percent, na.rm=T), sample_size_unique=n_distinct(Time_Active_percent, na.rm=T), sample_size=n())
+time_active_craycray_summary3
+```
+
+#### Visualizations
+```{r}
+figure1B = 
+  ggplot(craycray, aes(x=Treatment_Period, y=Time_Active_percent)) +
+  geom_boxplot(aes(color=Cue_Treatment, alpha=Population), position= position_dodge2(padding = 0.3, preserve = "single"), fill=NA, outlier.shape = NA, size = 1) + 
+  geom_point(aes(fill=Cue_Treatment, shape=Population), position = position_jitterdodge(0.08), size = 2, color = "black") +
+  #stat_summary(aes(color=Cue_Treatment, alpha=Population), fun=mean, geom='crossbar', position = position_jitterdodge(.1), size=1, linewidth=.5) +
+  labs(y="Time active (%)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=6), limits = c(0,100)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  scale_shape_manual(values = c(21,24)) +
+  scale_alpha_manual(values = c(.5,1))
+figure1B
+
+figure1A2.0 = 
+  ggplot(time_active_craycray_summary1, aes(x=Treatment_Period, y=mean)) +
+  geom_path(aes(color=Cue_Treatment, group = Cue_Treatment), position = position_dodge(width=0.1), size = 3) +
+  geom_errorbar(aes(color=Cue_Treatment, ymin=mean-SE, ymax=mean+SE), position = position_dodge(width=0.1), width=0.5, size=2) +
+  geom_point(aes(fill=Cue_Treatment, shape = Cue_Treatment), position = position_dodge(width=0.1), size = 4, color = "black") +
+  #stat_summary(aes(color=Cue_Treatment, alpha=Population), fun=mean, geom='crossbar', position = position_jitterdodge(.1), size=1, linewidth=.5) +
+  labs(y = "Mean time active (±95% CI)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= c(.05,.1), legend.title = element_blank()) +
+  scale_y_continuous(breaks= pretty_breaks(n=6), limits = c(0,80)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  scale_shape_manual(values = c(21, 22, 24))
+figure1A2.0
+
+library(gridExtra)
+library(cowplot)
+
+#  @ portrait at 7.08661 x 8.26772 max for JEB
+# 4x8.5 portrait looks good
+
+Time_active_figure = plot_grid(figure1A2.0, figure1B, rel_widths= c(1,2), labels = "AUTO", label_x = -.01, label_y = 1, scale =1, ncol=2, nrow = 1, label_size = 12, align = "hv")
+Time_active_figure
+
+# @ 3 x 6 for paper
+# @ 9 x 18 for poster
+```
+
+
+#### STATS
+
+##### 3-way interaction model
+```{r}
+# Fit the full model (including three-way interaction)
+full_model <- glmer(Time_Active_prop~Cue_Treatment*Treatment_Period*Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Define nested models
+
+# Model 1: Without three-way interaction
+model1 <- glmer(Time_Active_prop ~ Cue_Treatment * Treatment_Period + Cue_Treatment * Population + Treatment_Period * Population + Cue_Treatment + Treatment_Period + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 2: Without Cue_Treatment:Treatment_Period interaction
+model2 <- glmer(Time_Active_prop ~ Cue_Treatment * Population + Treatment_Period * Population + Cue_Treatment + Treatment_Period + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 3: Without Cue_Treatment:Population interaction
+model3 <- glmer(Time_Active_prop ~ Cue_Treatment * Treatment_Period + Treatment_Period * Population + Cue_Treatment + Treatment_Period + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 4: Without Treatment_Period:Population interaction
+model4 <- glmer(Time_Active_prop ~ Cue_Treatment * Treatment_Period + Cue_Treatment * Population + Cue_Treatment + Treatment_Period + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 5: Without Cue_Treatment main effect
+model5 <- glmer(Time_Active_prop ~ Treatment_Period * Population + Treatment_Period + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 6: Without Treatment_Period main effect
+model6 <- glmer(Time_Active_prop ~ Cue_Treatment * Population + Cue_Treatment + Population + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 7: Without Population main effect
+model7 <- glmer(Time_Active_prop ~ Cue_Treatment * Treatment_Period + Cue_Treatment + Treatment_Period + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Model 8: Intercept only (null model)
+model8 <- glmer(Time_Active_prop ~ 1 + (1 | Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=craycray)
+
+# Fit all models and compare using anova
+anova_results <- anova(model1, model2, model3, model4, model5, model6, model7, model8, full_model)
+
+# Print the ANOVA table
+anova_results
+
+
+#AIC comparison
+library(AICcmodavg)
+print(aictab(list(full_model, model1, model2, model3, model4, model5, model6, model7,  model8), c("full_model", "model1", "model2", "model3", "model4", "model5", "model6", "model7",  "model8")), LL = FALSE)
+
+# Best model is # Model 7: Without Population main effect based on AIC comparisons
+
+#Check for normality assumptions
+#homogeneity of variance assumption
+plot(fitted(full_model), residuals(full_model))
+#leveneTest(data=sp, Proportion_escape_hatched~Age*Clutch_size)
+#normality assumption
+hist(residuals(full_model))
+qqnorm(residuals(full_model))
+qqline(residuals(full_model))
+shapiro.test(residuals(full_model))
+
+summary(full_model)
+Anova(full_model)
+```
+
+Likelihood ratio tests
+```{r}
+#3-way interaction effect
+anova(full_model, model1, test = "Chisq")
+#Cue_Treatment:Treatment_Period interaction effect
+anova(full_model, model2, test = "Chisq")
+#Cue_Treatment:Population effect
+anova(full_model, model3, test = "Chisq")
+#Treatment_Period:Population effect
+anova(full_model, model4, test = "Chisq")
+
+
+#cue treatment effect
+anova(full_model, model5, test = "Chisq")
+#time period effect
+anova(full_model, model6, test = "Chisq")
+#population effect
+anova(full_model, model7, test = "Chisq")
+```
+
+
+
+##### Effect Sizes & Post hoc Comparisons on Model 7: Without Population main effect
+```{r}
+#Compute Estimated Marginal Means (EMMs) & effect sizes & CI
+emms = emmeans(model7, pairwise~Treatment_Period|Cue_Treatment, type="response") #, adjust="Bonferoni"
+emms
+summary(emms, adjust="fdr", infer=TRUE)
+
+emms = emmeans(model7, pairwise~Cue_Treatment|Treatment_Period, type="response") #, adjust="Bonferoni"
+emms
+summary(emms, adjust="fdr", infer=TRUE)
+```
+
+> here odds.ratio is after/before with CI and p values
+
+##### Model Estimates emmeans plot
+```{r}
+#make original emmeans plot
+emmeans_plot= emmip (model7, ~ Treatment_Period|Cue_Treatment, type="response", CIs = TRUE)
+emmeans_plot
+
+#import it into ggplot2
+plot_df = emmeans_plot$data
+
+figure1A = 
+  ggplot(plot_df, aes(x=Treatment_Period, y=yvar, group=Cue_Treatment)) +
+  geom_path(aes(color=Cue_Treatment), position = position_dodge(width=0.1), size = 3) +
+  geom_errorbar(aes(ymin=LCL, ymax=UCL, color=Cue_Treatment), position = position_dodge(width=0.1), width=0.4, size=3) +
+  geom_point(aes(fill=Cue_Treatment, shape=Cue_Treatment),position = position_dodge(width=0.1), size = 4, color = "black") +
+  labs(y = "Mean time active (±95% CI)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= c(.05,.9)) +
+  scale_y_continuous(breaks= pretty_breaks(n=4)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  scale_shape_manual(values = c(21, 22, 24))
+figure1A
+```
+
+
+
+## PREDATOR AVOIDANCE
+
+### Mean position score
+```{r}
+craycray3 = craycray %>%
+  filter(Treatment_Period == "Before")
+
+Mean_position_score_summary = craycray3 %>% 
+  group_by(Cue_Treatment) %>%
+summarise(mean = mean(Mean_Position_Score, na.rm=T), SE= sd(Mean_Position_Score, na.rm=T)/sqrt(length(Mean_Position_Score)), SD = sd(Mean_Position_Score, na.rm=T), max = max(Mean_Position_Score, na.rm=T), min = min(Mean_Position_Score, na.rm=T), sample_size_unique=n_distinct(Mean_Position_Score, na.rm=T), sample_size=n())
+Mean_position_score_summary
+
+
+mean_position_score_plot = 
+  ggplot(craycray3, aes(x=Cue_Treatment, y=Mean_Position_Score)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 2, color = "black", pch=21) +
+  labs(y="Mean position score", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=7)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) 
+mean_position_score_plot
+
+
+
+### STATS
+
+library(lme4)
+library(MuMIn)
+library(car)
+
+hist(craycray3$Mean_Position_Score)
+
+#all models
+mean_position_score_full = lmer(Mean_Position_Score~Cue_Treatment*Population + (1|Crayfish_Treatment_ID), data=craycray3)
+mean_position_score_nointeraction=  lmer(Mean_Position_Score~Cue_Treatment+Population + (1|Crayfish_Treatment_ID), data=craycray3)
+mean_position_score_notreatment = lmer(Mean_Position_Score~Population + (1|Crayfish_Treatment_ID), data=craycray3)
+mean_position_score_notimeperiod = lmer(Mean_Position_Score~Cue_Treatment + (1|Crayfish_Treatment_ID), data=craycray3)
+
+
+#AIC comparison
+library(AICcmodavg)
+print(aictab(list(mean_position_score_full,  mean_position_score_nointeraction, mean_position_score_notreatment, mean_position_score_notimeperiod), c("mean_position_score_full", "mean_position_score_nointeraction", "mean_position_score_notreatment", "mean_position_score_notimeperiod")), LL = FALSE)
+
+#time_in_danger_zone_full = glmer(Time_in_Danger_Zone_prop~Cue_Treatment*Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+
+
+#Check for normality assumptions
+#homogeneity of variance assumption
+plot(fitted(mean_position_score_full), residuals(mean_position_score_full))
+#leveneTest(data=sp, Proportion_escape_hatched~Age*Clutch_size)
+#normality assumption
+hist(residuals(mean_position_score_full))
+qqnorm(residuals(mean_position_score_full))
+qqline(residuals(mean_position_score_full))
+shapiro.test(residuals(mean_position_score_full))
+
+Anova(mean_position_score_full)
+```
+
+Likelihood ratio tests
+```{r}
+anova(mean_position_score_full, mean_position_score_nointeraction, test = "Chisq")
+anova(mean_position_score_full, mean_position_score_notreatment, test = "Chisq")
+anova(mean_position_score_full, mean_position_score_notimeperiod, test = "Chisq")
+```
+
+EFFECT OF INTERACTION:
+* **X = 0.0068; p-value = 0.9966 **
+
+EFFECT OF TREATMENT:
+* **X = 11.139; p-value = 0.02504 **
+
+EFFECT OF POPULATION:
+* **X = 0.5096; p-value = 0.9168 **
+
+
+
+
+### Proportion of Time
+
+Far zone
+```{r}
+craycray3 = craycray %>%
+  filter(Treatment_Period == "Before")
+
+Time_in_Far_Zone_percent_summary = craycray3 %>% 
+summarise(mean = mean(Time_in_Far_Zone_percent, na.rm=T), SE= sd(Time_in_Far_Zone_percent, na.rm=T)/sqrt(length(Time_in_Far_Zone_percent)), SD = sd(Time_in_Far_Zone_percent, na.rm=T), max = max(Time_in_Far_Zone_percent, na.rm=T), min = min(Time_in_Far_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Far_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Far_Zone_percent_summary
+
+Time_in_Far_Zone_percent_summary = craycray3 %>% 
+  group_by(Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Far_Zone_percent, na.rm=T), SE= sd(Time_in_Far_Zone_percent, na.rm=T)/sqrt(length(Time_in_Far_Zone_percent)), SD = sd(Time_in_Far_Zone_percent, na.rm=T), max = max(Time_in_Far_Zone_percent, na.rm=T), min = min(Time_in_Far_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Far_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Far_Zone_percent_summary
+
+Time_in_Far_Zone_percent_summary2 = craycray3 %>% 
+  group_by(Population, Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Far_Zone_percent, na.rm=T), SE= sd(Time_in_Far_Zone_percent, na.rm=T)/sqrt(length(Time_in_Far_Zone_percent)), SD = sd(Time_in_Far_Zone_percent, na.rm=T), max = max(Time_in_Far_Zone_percent, na.rm=T), min = min(Time_in_Far_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Far_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Far_Zone_percent_summary2
+
+Time_in_Far_Zone_percent_summary2 = craycray3 %>% 
+  group_by(Population) %>%
+summarise(mean = mean(Time_in_Far_Zone_percent, na.rm=T), SE= sd(Time_in_Far_Zone_percent, na.rm=T)/sqrt(length(Time_in_Far_Zone_percent)), SD = sd(Time_in_Far_Zone_percent, na.rm=T), max = max(Time_in_Far_Zone_percent, na.rm=T), min = min(Time_in_Far_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Far_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Far_Zone_percent_summary2
+
+# did fish excreta matter?
+Time_in_Far_Zone_percent_summary4 = craycray3 %>% 
+  group_by(Cue_Treatment, Fish_Poop_Present, Population) %>%
+summarise(mean = mean(Time_in_Far_Zone_percent, na.rm=T), SE= sd(Time_in_Far_Zone_percent, na.rm=T)/sqrt(length(Time_in_Far_Zone_percent)), SD = sd(Time_in_Far_Zone_percent, na.rm=T), max = max(Time_in_Far_Zone_percent, na.rm=T), min = min(Time_in_Far_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Far_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Far_Zone_percent_summary4
+```
+
+```{r}
+#Danger zone
+
+Time_in_Danger_Zone_percent_summary = craycray3 %>% 
+summarise(mean = mean(Time_in_Danger_Zone_percent, na.rm=T), SE= sd(Time_in_Danger_Zone_percent, na.rm=T)/sqrt(length(Time_in_Danger_Zone_percent)), SD = sd(Time_in_Danger_Zone_percent, na.rm=T), max = max(Time_in_Danger_Zone_percent, na.rm=T), min = min(Time_in_Danger_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Danger_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Danger_Zone_percent_summary
+
+Time_in_Danger_Zone_percent_summary = craycray3 %>% 
+  group_by(Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Danger_Zone_percent, na.rm=T), SE= sd(Time_in_Danger_Zone_percent, na.rm=T)/sqrt(length(Time_in_Danger_Zone_percent)), SD = sd(Time_in_Danger_Zone_percent, na.rm=T), max = max(Time_in_Danger_Zone_percent, na.rm=T), min = min(Time_in_Danger_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Danger_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Danger_Zone_percent_summary
+
+Time_in_Danger_Zone_percent_summary2 = craycray3 %>% 
+  group_by(Population, Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Danger_Zone_percent, na.rm=T), SE= sd(Time_in_Danger_Zone_percent, na.rm=T)/sqrt(length(Time_in_Danger_Zone_percent)), SD = sd(Time_in_Danger_Zone_percent, na.rm=T), max = max(Time_in_Danger_Zone_percent, na.rm=T), min = min(Time_in_Danger_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Danger_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Danger_Zone_percent_summary2
+
+#Middle Zone
+
+Time_in_Middle_Zone_percent_summary = craycray3 %>% 
+summarise(mean = mean(Time_in_Middle_Zone_percent, na.rm=T), SE= sd(Time_in_Middle_Zone_percent, na.rm=T)/sqrt(length(Time_in_Middle_Zone_percent)), SD = sd(Time_in_Middle_Zone_percent, na.rm=T), max = max(Time_in_Middle_Zone_percent, na.rm=T), min = min(Time_in_Middle_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Middle_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Middle_Zone_percent_summary
+
+Time_in_Middle_Zone_percent_summary = craycray3 %>% 
+  group_by(Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Middle_Zone_percent, na.rm=T), SE= sd(Time_in_Middle_Zone_percent, na.rm=T)/sqrt(length(Time_in_Middle_Zone_percent)), SD = sd(Time_in_Middle_Zone_percent, na.rm=T), max = max(Time_in_Middle_Zone_percent, na.rm=T), min = min(Time_in_Middle_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Middle_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Middle_Zone_percent_summary
+
+Time_in_Middle_Zone_percent_summary2 = craycray3 %>% 
+  group_by(Population, Cue_Treatment) %>%
+summarise(mean = mean(Time_in_Middle_Zone_percent, na.rm=T), SE= sd(Time_in_Middle_Zone_percent, na.rm=T)/sqrt(length(Time_in_Middle_Zone_percent)), SD = sd(Time_in_Middle_Zone_percent, na.rm=T), max = max(Time_in_Middle_Zone_percent, na.rm=T), min = min(Time_in_Middle_Zone_percent, na.rm=T), sample_size_unique=n_distinct(Time_in_Middle_Zone_percent, na.rm=T), sample_size=n())
+Time_in_Middle_Zone_percent_summary2
+```
+
+### Visualizations
+
+Total pooled data
+```{r}
+#Far zone
+proportion_far_zone = 
+  ggplot(craycray3, aes(x=Cue_Treatment, y=Time_in_Far_Zone_percent)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 2, color = "black", pch=21) +
+  labs(y="Time in furthest zone (%)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=7), limits = c(0, 100)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) 
+proportion_far_zone
+```
+
+
+### STATS
+
+GLMM
+```{r}
+library(lme4)
+library(MuMIn)
+library(car)
+
+hist(craycray3$Time_in_Far_Zone_prop)
+
+#all models
+time_in_safe_zone_full = glmer(Time_in_Far_Zone_prop~Cue_Treatment*Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+time_in_safe_nointeraction=  glmer(Time_in_Far_Zone_prop~Cue_Treatment+Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+time_in_safe_notreatment = glmer(Time_in_Far_Zone_prop~Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+time_in_safe_notimeperiod = glmer(Time_in_Far_Zone_prop~Cue_Treatment + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+
+
+#AIC comparison
+library(AICcmodavg)
+print(aictab(list(time_in_safe_zone_full,  time_in_safe_nointeraction, time_in_safe_notreatment, time_in_safe_notimeperiod), c("time_in_safe_zone_full", "time_in_safe_nointeraction", "time_in_safe_notreatment", "time_in_safe_notimeperiod")), LL = FALSE)
+
+#time_in_danger_zone_full = glmer(Time_in_Danger_Zone_prop~Cue_Treatment*Population + (1|Crayfish_Treatment_ID), family="binomial", weights=Total_Number_of_Frames, data=craycray3)
+
+
+#Check for normality assumptions
+#homogeneity of variance assumption
+plot(fitted(time_in_safe_zone_full), residuals(time_in_safe_zone_full))
+#leveneTest(data=sp, Proportion_escape_hatched~Age*Clutch_size)
+#normality assumption
+hist(residuals(time_in_safe_zone_full))
+qqnorm(residuals(time_in_safe_zone_full))
+qqline(residuals(time_in_safe_zone_full))
+shapiro.test(residuals(time_in_safe_zone_full))
+
+Anova(time_in_safe_zone_full)
+```
+
+Likelihood ratio tests
+```{r}
+anova(time_in_safe_zone_full, time_in_safe_nointeraction, test = "Chisq")
+anova(time_in_safe_zone_full, time_in_safe_notreatment, test = "Chisq")
+anova(time_in_safe_zone_full, time_in_safe_notimeperiod, test = "Chisq")
+```
+
+EFFECT OF INTERACTION:
+* **X = 2.177; p-value = 0.3367 **
+
+EFFECT OF TREATMENT:
+* **X = 211.63; p-value = < 2.2e-16 **
+
+EFFECT OF POPULATION:
+* **X = 9.1337; p-value = 0.02756**
+
+
+
+##### Effect Sizes & Post hoc Comparisons
+```{r}
+library(emmeans)
+library(multcomp)
+summary(glht(time_in_safe_zone_full, linfct=mcp(Cue_Treatment="Tukey")))
+```
+
+
+
+
+
+
+
+
+
+
+## FEEDING RESPONSE
+
+Summarize proportion data
+```{r}
+library(dplyr)
+
+proportion_fed_summary = craycray3 %>%
+  group_by(Cue_Treatment) %>%
+  summarise(sample_size = n(), successes = sum(Feeding_Response), proportion_fed = successes/sample_size)
+proportion_fed_summary
+
+proportion_fed_summary2 = craycray3 %>%
+  group_by(Cue_Treatment, Population) %>%
+  summarise(sample_size = n(), successes = sum(Feeding_Response), proportion_fed = successes/sample_size)
+proportion_fed_summary2
+```
+
+### Visualizations
+
+Proportion fed
+```{r}
+library(ggplot2)
+library(dplyr)
+
+proportion_fed = ggplot(proportion_fed_summary, aes(y=proportion_fed, x=Cue_Treatment)) +
+  geom_bar(stat="identity", aes(fill=Cue_Treatment), position=position_dodge(.9), width = .9, color="black") + # use barplots w/time of day filled w/color
+  labs(y="Proportion that fed", x=element_blank()) + #creat labels... 
+  theme_classic(base_size = 12) +
+  theme(legend.position="none", axis.title.y = element_text(size = 12), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black")) +
+  scale_y_continuous(expand= c(0,0), breaks= pretty_breaks(n=6), limits = c(0,1.09)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  geom_text(aes(y= 0.025, label= successes), color= "black", vjust = 0, size = 4) 
+proportion_fed
+
+proportion_fed_poster = ggplot(proportion_fed_summary, aes(y=proportion_fed, x=Cue_Treatment)) +
+  geom_bar(stat="identity", aes(fill=Cue_Treatment), position=position_dodge(.9), width = .9, color="black") + # use barplots w/time of day filled w/color
+  labs(y="Proportion that fed", x=element_blank()) + #creat labels... 
+  theme_classic(base_size = 40) +
+  theme(legend.position="none", axis.title.y = element_text(size = 40), axis.text = element_text(color="black", size = 40), axis.ticks = element_line(color = "black")) +
+  scale_y_continuous(expand= c(0,0), breaks= pretty_breaks(n=6), limits = c(0,1.09)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  geom_text(aes(y= 0.025, label= successes), color= "black", vjust = 0, size = 10) 
+proportion_fed_poster
+```
+
+By population
+```{r}
+proportion_fed2 = ggplot(proportion_fed_summary2, aes(y=proportion_fed, x=Cue_Treatment)) +
+  geom_bar(stat="identity", aes(fill=Cue_Treatment), position=position_dodge(.9), width = .9, color="black") + # use barplots w/time of day filled w/color
+  labs(y="Proportion fed", x=element_blank()) + #creat labels... 
+  theme_classic(base_size = 9) +
+  theme(legend.position="none", axis.title.y = element_text(size = 9), axis.text = element_text(color="black", size = 9), axis.ticks = element_line(color = "black")) +
+  scale_y_continuous(expand= c(0,0), breaks= pretty_breaks(n=8), limits = c(0,1.09)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  geom_text(aes(y= 0.025, label= successes), color= "black", vjust = 0, size = 4) +
+  facet_rep_grid(cols = vars(Population), as.table = T, scales = "free", space = "free")
+proportion_fed2
+```
+
+Latency to Feed Summary
+```{r}
+latency_to_feed_summary = craycray3 %>%
+  group_by(Cue_Treatment) %>%
+  summarise(mean = mean(Latency_to_Feed_min, na.rm=T), SE= sd(Latency_to_Feed_min, na.rm=T)/sqrt(length(Latency_to_Feed_min)), SD = sd(Latency_to_Feed_min, na.rm=T), max = max(Latency_to_Feed_min, na.rm=T), min = min(Latency_to_Feed_min, na.rm=T), sample_size_unique=n_distinct(Latency_to_Feed_min, na.rm=T), sample_size=n())
+latency_to_feed_summary
+
+latency_to_feed_summary2 = craycray3 %>%
+  group_by(Population, Cue_Treatment) %>%
+  summarise(mean = mean(Latency_to_Feed_min, na.rm=T), SE= sd(Latency_to_Feed_min, na.rm=T)/sqrt(length(Latency_to_Feed_min)), SD = sd(Latency_to_Feed_min, na.rm=T), max = max(Latency_to_Feed_min, na.rm=T), min = min(Latency_to_Feed_min, na.rm=T), sample_size_unique=n_distinct(Latency_to_Feed_min, na.rm=T), sample_size=n())
+latency_to_feed_summary2
+
+latency_to_feed_summary3 = craycray3 %>%
+  group_by(Population) %>%
+  summarise(mean = mean(Latency_to_Feed_min, na.rm=T), SE= sd(Latency_to_Feed_min, na.rm=T)/sqrt(length(Latency_to_Feed_min)), SD = sd(Latency_to_Feed_min, na.rm=T), max = max(Latency_to_Feed_min, na.rm=T), min = min(Latency_to_Feed_min, na.rm=T), sample_size_unique=n_distinct(Latency_to_Feed_min, na.rm=T), sample_size=n())
+latency_to_feed_summary3
+```
+
+
+```{r}
+library(ggplot2)
+library(scales)
+latency_to_feed = 
+  ggplot(craycray3, aes(x=Cue_Treatment, y=Latency_to_Feed_min)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 2, color = "black", pch=21) +
+  labs(y="Latency to feed (min)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=6)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) 
+latency_to_feed
+
+latency_to_feed_poster = 
+  ggplot(craycray3, aes(x=Cue_Treatment, y=Latency_to_Feed_min)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA, size=2) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 5, color = "black", pch=21) +
+  labs(y="Latency to feed (min)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=40) +
+  theme(legend.text = element_text(size = 40), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 40), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=6)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) 
+latency_to_feed_poster
+```
+
+By population
+```{r}
+latency_to_feed2 = 
+  ggplot(craycray3, aes(x=Cue_Treatment, y=Latency_to_Feed_min)) +
+  geom_boxplot(aes(color=Cue_Treatment), fill=NA, outlier.shape = NA) + 
+  geom_point(aes(fill=Cue_Treatment), position = position_jitterdodge(.2), size = 2, color = "black", pch=21) +
+  labs(y="Latency to feed (min)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=8) +
+  theme(legend.text = element_text(size = 8), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 8), axis.ticks = element_line(color = "black")) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=6)) +
+  scale_color_manual(values = c("chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("chocolate3", "cadetblue3", "darkgreen" )) +
+  facet_grid(cols = vars(Population), as.table = T, scales = "free", space = "free")
+latency_to_feed2
+
+#3x3 looks good in PDF
+```
+
+### Composite figure
+```{r}
+library(gridExtra)
+library(cowplot)
+
+#  @ portrait at 7.08661 x 8.26772 max for JEB
+# 4x8.5 portrait looks good
+
+Feeding_response = plot_grid(proportion_fed, latency_to_feed, labels = "AUTO", label_x = -.01, label_y = 1, scale =1, ncol=1, nrow = 2, label_size = 12, align = "hv")
+Feeding_response
+
+# @ 3 x 6
+```
+
+### STATS
+
+#### Proportion fed
+```{r}
+#Native vs. Control
+prop.test(x=c(6,29), n=c(30,30))
+
+#Invasive vs. Control
+prop.test(x=c(22,29), n=c(30,30))
+
+#Native vs. Invasive
+prop.test(x=c(6,22), n=c(30,30))
+```
+
+
+#### Latency to feed
+GLMM
+```{r}
+library(lme4)
+library(MuMIn)
+library(car)
+
+hist(craycray$Latency_to_Feed_min)
+hist(log(craycray$Latency_to_Feed_min))
+
+
+#all models
+latency_to_feed_full = lmer(log(Latency_to_Feed_min)~Cue_Treatment*Population + (1|Crayfish_Treatment_ID), data=craycray)
+latency_to_feed_nointeraction = lmer(log(Latency_to_Feed_min)~Cue_Treatment+Population + (1|Crayfish_Treatment_ID), data=craycray)
+latency_to_feed_notreatment = lmer(log(Latency_to_Feed_min)~Population + (1|Crayfish_Treatment_ID), data=craycray)
+latency_to_feed_population = lmer(log(Latency_to_Feed_min)~Cue_Treatment + (1|Crayfish_Treatment_ID), data=craycray)
+
+#AIC comparison
+library(AICcmodavg)
+print(aictab(list(latency_to_feed_full,  latency_to_feed_nointeraction, latency_to_feed_notreatment, latency_to_feed_population), c("latency_to_feed_full",  "latency_to_feed_nointeraction", "latency_to_feed_notreatment", "latency_to_feed_population")), LL = FALSE)
+
+#Check for normality assumptions
+#homogeneity of variance assumption
+plot(fitted(latency_to_feed_full), residuals(latency_to_feed_full))
+#leveneTest(data=sp, Proportion_escape_hatched~Age*Clutch_size)
+#normality assumption
+hist(residuals(latency_to_feed_full))
+qqnorm(residuals(latency_to_feed_full))
+qqline(residuals(latency_to_feed_full))
+shapiro.test(residuals(latency_to_feed_full))
+
+Anova(latency_to_feed_full)
+```
+
+Likelihood ratio tests
+```{r}
+anova(latency_to_feed_full, latency_to_feed_nointeraction, test = "Chisq")
+anova(latency_to_feed_full, latency_to_feed_notreatment, test = "Chisq")
+anova(latency_to_feed_full, latency_to_feed_population, test = "Chisq")
+```
+
+EFFECT OF INTERACTION:
+* **X = 1.6828; p-value = 0.4311 **
+
+EFFECT OF TREATMENT:
+* **X = 28.791; p-value = 8.62e-06**
+
+EFFECT OF POPULATION:
+* **X = 16.612; p-value = 0.0008492**
+
+
+##### Effect Sizes & Post hoc Comparisons
+```{r}
+library(emmeans)
+library(multcomp)
+summary(glht(latency_to_feed_full, linfct=mcp(Cue_Treatment="Tukey")))
+```
+
+
+
+
+
+******************************************************************************************************
+******************************************************************************************************
+******************************************************************************************************
+
+
+
+# Water-borne Cue Trials
+
+```{r}
+wbc_df <- read_excel("~/Desktop/Publications/Manuscripts/In Prep/Prey naivete/Crayfish Behavioral Assay Data V2.xlsx", 
+    sheet = "Water-borne Cues Data", na = "NA")
+wbc_df
+
+wbc_df = wbc_df %>%
+  mutate(Treatment_Period = factor(Treatment_Period, levels=c("Before", "After"))) %>%
+  filter(Criteria_met == 1)
+
+```
+
+## Sumary statistics
+```{r}
+waterborncues_summary1 = wbc_df %>% 
+  group_by(Cue_Treatment, Treatment_Period) %>%
+summarise(mean = mean(Time_Active_percent, na.rm=T), SE= sd(Time_Active_percent, na.rm=T)/sqrt(length(Time_Active_percent)), SD = sd(Time_Active_percent, na.rm=T), max = max(Time_Active_percent, na.rm=T), min = min(Time_Active_percent, na.rm=T), sample_size_unique=n_distinct(Time_Active_percent, na.rm=T), sample_size=n(), ci_lower = mean-qt(0.975, df = n() - 1) *SE, ci_upper = mean + qt(0.975, df = n() - 1) * SE)
+waterborncues_summary1
+
+waterborncues_summary1 = wbc_df %>% 
+summarise(mean = mean(Crayfish_CL_mm, na.rm=T), SE= sd(Crayfish_CL_mm, na.rm=T)/sqrt(length(Crayfish_CL_mm)), SD = sd(Crayfish_CL_mm, na.rm=T), max = max(Crayfish_CL_mm, na.rm=T), min = min(Crayfish_CL_mm, na.rm=T), sample_size_unique=n_distinct(Crayfish_CL_mm, na.rm=T), sample_size=n(), ci_lower = mean-qt(0.975, df = n() - 1) *SE, ci_upper = mean + qt(0.975, df = n() - 1) * SE)
+waterborncues_summary1
+```
+
+
+## Visualizations
+```{r}
+waterborncues = 
+  ggplot(wbc_df, aes(x=Treatment_Period, y=Time_Active_percent)) +
+  geom_boxplot(aes(color=Cue_Treatment), position= position_dodge2(padding = 0.3, preserve = "single"), fill=NA, outlier.shape = NA, size = 1) + 
+  geom_point(aes(fill=Cue_Treatment, shape=Cue_Treatment), position = position_jitterdodge(0.08), size = 2, color = "black") +
+  #stat_summary(aes(color=Cue_Treatment, alpha=Population), fun=mean, geom='crossbar', position = position_jitterdodge(.1), size=1, linewidth=.5) +
+  labs(y="Time active (%)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= "none") +
+  scale_y_continuous(breaks= pretty_breaks(n=6), limits = c(0,100)) +
+  scale_color_manual(values = c("darkgray", "chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("darkgray", "chocolate3", "cadetblue3", "darkgreen" )) +
+  scale_shape_manual(values = c(21, 22, 23, 24))
+waterborncues
+
+waterborncues_effect_sizes = 
+  ggplot(waterborncues_summary1, aes(x=Treatment_Period, y=mean)) +
+  geom_path(aes(color=Cue_Treatment, group = Cue_Treatment), position = position_dodge(width=0.1), size = 3) +
+  geom_errorbar(aes(color=Cue_Treatment, ymin=mean-SE, ymax=mean+SE), position = position_dodge(width=0.1), width=0.5, size=2) +
+  geom_point(aes(fill=Cue_Treatment, shape = Cue_Treatment), position = position_dodge(width=0.1), size = 4, color = "black") +
+  #stat_summary(aes(color=Cue_Treatment, alpha=Population), fun=mean, geom='crossbar', position = position_jitterdodge(.1), size=1, linewidth=.5) +
+  labs(y = "Mean time active (±95% CI)", x="Treatment") + #creat labels... 
+  theme_classic(base_size=12) +
+  theme(legend.text = element_text(size = 12), legend.title = element_blank(), legend.background = element_blank(), axis.text = element_text(color="black", size = 12), axis.ticks = element_line(color = "black"), axis.title.x = element_blank()) +
+  theme(legend.title.align=0.5, legend.justification = c(0,.5), legend.position= c(.05,.1), legend.title = element_blank()) +
+  scale_y_continuous(breaks= pretty_breaks(n=6), limits = c(0,80)) +
+  scale_color_manual(values = c("darkgray", "chocolate3","cadetblue3", "darkgreen" )) +
+  scale_fill_manual(values = c("darkgray", "chocolate3", "cadetblue3", "darkgreen" )) +
+  scale_shape_manual(values = c(21, 22, 23, 24))
+waterborncues_effect_sizes
+```
+
+### Composite figure
+```{r}
+library(gridExtra)
+library(cowplot)
+
+#  @ portrait at 7.08661 x 8.26772 max for JEB
+# 4x8.5 portrait looks good
+
+Time_active_figure_total = plot_grid(figure1A2.0, waterborncues_effect_sizes, figure1B, waterborncues, labels = "AUTO", label_x = -.01, label_y = 1, scale =1, ncol=2, nrow = 2, label_size = 12, align = "hv")
+Time_active_figure_total
+
+# @ 3 x 6 for paper
+```
+
+
+### STATS
+```{r}
+wbc_df_nocontrol = wbc_df %>%
+  filter(Cue_Treatment!= "Control")
+
+
+activity_water_full_model <- glmer(Time_Active_prop~Cue_Treatment*Treatment_Period + (1|Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=wbc_df)
+activity_water_nointeraction = glmer(Time_Active_prop~Cue_Treatment+Treatment_Period + (1|Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=wbc_df)
+activity_water_notreatment = glmer(Time_Active_prop~Treatment_Period + (1|Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=wbc_df)
+activity_water_period = glmer(Time_Active_prop~Cue_Treatment + (1|Crayfish_Treatment_ID), family="binomial", weights=Duration_Active_min, data=wbc_df)
+
+
+Anova(activity_water_full_model)
+```
+
+
+Likelihood ratio tests
+```{r}
+anova(activity_water_full_model, activity_water_nointeraction, test = "Chisq")
+anova(activity_water_full_model, activity_water_notreatment, test = "Chisq")
+anova(activity_water_full_model, activity_water_period, test = "Chisq")
+```
+
+EFFECT OF INTERACTION:
+* **X = 1.3877; p-value = 0.7084 **
+
+EFFECT OF TREATMENT:
+* **X = 7.0079; p-value = 0.3201 **
+
+EFFECT OF PERIOD:
+* **X = 1.4252; p-value = 0.8398 **
+
+
