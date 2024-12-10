@@ -2,15 +2,16 @@
 
 **INTRODUCTION**
 
-This repository contains raw data and scripts associated with the manuscript in preparation entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations". Additional videos related to this work and cited within the published manuscript can be found here: https://doi.org/10.6084/m9.figshare.27629967.v1
+This repository contains raw data and scripts associated with the manuscript in preparation entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations" submitted to _Functional Ecology_. Additional videos related to this work and cited within the published manuscript can be found here: https://doi.org/10.6084/m9.figshare.27629967.v1
 
 **Abstract**
 
 1.	Invasive predators are rampant worldwide, often causing ecological, economic, and social harm. Prey naïveté has been hypothesized to contribute to population declines of native prey following invasions of non-native predators.
-2.	We tested the prey naïveté hypothesis (PNH) by examining the antipredator responses of slough crayfish following exposure to native warmouth and non-native Asian swamp eels, whose invasion has been associated with collapses of several common macroinvertebrate and small fish species in the Everglades.
-3.	Crayfish reduced their activity, maximized predator avoidance, and decreased feeding when exposed to warmouth, but not when exposed to swamp eels, consistent with the PNH. These antipredator behaviors were not exhibited by crayfish exposed to water-borne predator and conspecific alarm cues, suggesting that predator risk recognition relies on visual cues.
-4.	We also tested crayfish from invaded and uninvaded sites to test for local adaptation to the invasive predator. We found no population differences, suggesting that ~6 years of contact with swamp eels (~12 crayfish generations) has been insufficient for the evolution of swamp eel recognition.
-5.	Our work provides another test of the prey naivete hypothesis and evidence for one underlying mechanism that could explain collapses of prey species following the swamp eel invasion in the Everglades.
+2.	We tested the prey naïveté hypothesis (PNH) by examining multiple antipredator responses of slough crayfish exposed to native warmouth and non-native Asian swamp eels, whose invasion has been associated with collapses of several common macroinvertebrate and small fish species in the wetlands of southern Florida.
+3.	Crayfish reduced their activity, increased spatial avoidance, and decreased feeding when exposed to warmouth, but not when exposed to swamp eels, consistent with the PNH. Antipredator behaviors were not exhibited by crayfish exposed to water-borne predator or conspecific alarm cues, suggesting that predator risk recognition for this species relies on visual cues.
+4.	We further assessed crayfish responses from invaded and uninvaded wetlands to test for rapid local adaptation to the invasive predator. We found no population differences, suggesting that ~6 years of contact with swamp eels (~12 crayfish generations) has been insufficient for the evolution of swamp eel recognition.
+5.	This work provides a robust test of the prey naïveté hypothesis and evidence for one underlying mechanism that could explain collapses of prey species following the Asian swamp eel invasion in the Everglades.
+6.	Finally, observations from controlled predation experiments suggest that slough crayfish, even if they eventually evolve swamp eel recognition, may be caught in a behavioral trade-off between visual native predators, which select for slow and cryptic lifestyles, and invasive swamp eels, which favor active escape responses and frequent redistributions to avoid contact with a slow-moving mechano- or chemo-sensory predator. Behavioral constraints arising from conflicting selective pressures may represent an overlooked mechanism in studies of predator-prey dynamics involving invasive species.
 
 **FOLDERS & FILES**
 
