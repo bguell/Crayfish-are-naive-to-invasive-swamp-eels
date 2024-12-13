@@ -2,7 +2,9 @@
 
 **INTRODUCTION**
 
-This repository contains raw data and scripts associated with the manuscript in preparation entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations" submitted to _Functional Ecology_. Additional videos related to this work and cited within the published manuscript can be found here: https://doi.org/10.6084/m9.figshare.27629967.v1
+This repository contains raw data and scripts associated with the submitted manuscript entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations" submitted to _Functional Ecology_ (manyscript ID FE-2024-01585).
+
+Additional videos related to this work and cited within the published manuscript can be found here: https://doi.org/10.6084/m9.figshare.27629967.v1
 
 **Abstract**
 
