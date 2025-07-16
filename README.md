@@ -2,7 +2,7 @@
 
 **INTRODUCTION**
 
-This repository contains the datasets and R script associated with the submitted manuscript entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations" submitted to _Proceedings B_ (manuscript ID RSPB-2025-0356).
+This repository contains the datasets and R script associated with the submitted manuscript entitled "Invasive swamp eels do not elicit antipredator behavior in a native crayfish with collapsing populations".
 
 Additional videos related to this work and cited within the manuscript can be found here: https://doi.org/10.6084/m9.figshare.27629967.v1
 
